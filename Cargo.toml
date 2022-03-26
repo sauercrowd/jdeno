@@ -7,4 +7,4 @@ edition = "2021"
 crate-type = ["cdylib"]
 
 [dependencies]
-deno_core = {path = "deno_core" , version ="0.124.0"}
+deno_core = "0.126.0"
