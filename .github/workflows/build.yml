@@ -26,6 +26,13 @@ jobs:
     - name: install aarch64 target
       run: |
         rustup target add aarch64-linux-android
+    - name: config file
+      run: |
+        mkdir .cargo
+        echo "
+[target.aarch64-linux-android]
+ar = \"`pwd`/android-ndk-r23b/toolchains/llvm/prebuilt/linux-x86_64/bin/llvm-ar\"
+linker = \"`pwd`/android-ndk-r23b/toolchains/llvm/prebuilt/linux-x86_64/bin/aarch64-linux-android30-clang\"" >> .cargo/config
     - name: Build libdeno
       run: |
               bash ./build.sh
