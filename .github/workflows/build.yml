@@ -15,7 +15,9 @@ jobs:
       env:
         cache-name: cache-node-modules
       with:
-        path: ~/.cargo 
+        path: |
+                ~/.cargo
+                android-ndk*
         key: ${{ runner.os }}-build-${{ env.cache-name }}-${{ hashFiles('**/Cargo.toml') }}
         restore-keys: |
           ${{ runner.os }}-build-${{ env.cache-name }}-
@@ -26,4 +28,5 @@ jobs:
         rustup target add aarch64-linux-android
     - name: Build libdeno
       run: |
-        RUSTFLAGS="-L `pwd`/deps -L /home/jonas/android-ndk-r23b/toolchains/llvm/prebuilt/linux-x86_64/sysroot/usr/lib/aarch64-linux-android/30" RUST_BACKTRACE=1 cargo  build --target=aarch64-linux-android
+              ./build.sh
+      #RUSTFLAGS="-L `pwd`/deps -L /home/jonas/android-ndk-r23b/toolchains/llvm/prebuilt/linux-x86_64/sysroot/usr/lib/aarch64-linux-android/30" RUST_BACKTRACE=1 cargo  build --target=aarch64-linux-android
