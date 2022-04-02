@@ -28,5 +28,5 @@ jobs:
         rustup target add aarch64-linux-android
     - name: Build libdeno
       run: |
-              ./build.sh
+              bash ./build.sh
       #RUSTFLAGS="-L `pwd`/deps -L /home/jonas/android-ndk-r23b/toolchains/llvm/prebuilt/linux-x86_64/sysroot/usr/lib/aarch64-linux-android/30" RUST_BACKTRACE=1 cargo  build --target=aarch64-linux-android
