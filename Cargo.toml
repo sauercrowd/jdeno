@@ -8,3 +8,4 @@ crate-type = ["cdylib"]
 
 [dependencies]
 deno_core = "0.126.0"
+tokio = { version = "1.17.0", features = ["full"] }
