@@ -1,62 +1,32 @@
-use std::error::Error;
-use deno_core::futures::FutureExt;
-use deno_core::resolve_import;
-use deno_core::ModuleLoader;
-use deno_core::ModuleSource;
+use crate::memory_loader::MemoryLoader;
+use core::ptr::NonNull;
 use std::rc::Rc;
-use tokio::runtime::Builder;
+use v8::Value;
 
-pub struct MemoryLoader {
-    files: std::collections::HashMap<String, String>,
-}
-
-impl ModuleLoader for MemoryLoader {
-    fn resolve(
-        &self,
-        specifier: &str,
-        referrer: &str,
-        _is_main: bool,
-    ) -> std::result::Result<deno_core::url::Url, deno_core::anyhow::Error> {
-        Ok(resolve_import(specifier, referrer)?)
-    }
-    fn load(
-        &self,
-        module_specifier: &deno_core::url::Url,
-        _maybe_referrer: std::option::Option<deno_core::url::Url>,
-        _is_dynamic: bool,
-    ) -> std::pin::Pin<
-        std::boxed::Box<
-            (dyn std::future::Future<
-                Output = std::result::Result<deno_core::ModuleSource, deno_core::anyhow::Error>,
-            > + 'static),
-        >,
-    > {
-        let module_specifier = module_specifier.clone();
-        let path = module_specifier.as_str();
-        let files_clone = self.files.clone();
-        println!("URL: {}", path);
-        let code = files_clone.get(path).expect("No file with name found");
-        let x = code.clone();
-        async move {
-            let module = ModuleSource {
-                code: x,
-                module_type: deno_core::ModuleType::JavaScript,
-                module_url_specified: module_specifier.to_string(),
-                module_url_found: module_specifier.to_string(),
-            };
-            Ok(module)
-        }
-        .boxed_local()
-    }
-}
+mod memory_loader;
 
 #[test]
 
 fn run_js() {
-    let mut files = std::collections::HashMap::new();
-    files.insert("file:///index".to_string(), std::fs::read_to_string("index.js").unwrap());
-    files.insert("file:///lockbox.js".to_string(), std::fs::read_to_string("lockbox.js").unwrap());
-    let module_loader = MemoryLoader { files: files };
+    // let mut files = std::collections::HashMap::new();
+    // files.insert(
+    //     "index".to_string(),
+    //     std::fs::read_to_string("index.js").unwrap(),
+    // );
+    // files.insert(
+    //     "lockbox.js".to_string(),
+    //     std::fs::read_to_string("lockbox.js").unwrap(),
+    // );
+
+    // let module_loader = memory_loader::MemoryLoader { files: files };
+
+    let mut module_loader = MemoryLoader::new();
+    module_loader.add_module(
+        "lockbox.js",
+        &std::fs::read_to_string("lockbox.js").unwrap(),
+    );
+    module_loader.add_module("index", &std::fs::read_to_string("index.js").unwrap());
+
     let mut js_runtime = deno_core::JsRuntime::new(deno_core::RuntimeOptions {
         module_loader: Some(Rc::new(module_loader)),
         ..deno_core::RuntimeOptions::default()
@@ -71,11 +41,24 @@ fn run_js() {
 
     let future = async move {
         let mod_id = js_runtime.load_main_module(&main_module, None).await?;
-        let _ = js_runtime.mod_evaluate(mod_id);
+        let mut x = js_runtime.mod_evaluate(mod_id);
+        println!("{:#?}", x.try_recv().expect(""));
         js_runtime.run_event_loop(false).await?;
-        Ok::<(), deno_core::anyhow::Error>(()) 
-    };
-    runtime.block_on(future).unwrap();
-}
 
-// pub fn create_runtime() {}
+        let r = js_runtime
+            .execute_script("main.js", "globalThis.i")
+            .expect("errror!!!!");
+        let scope = &mut js_runtime.handle_scope();
+        let local = v8::Local::new(scope, r);
+        let deserialised_value = serde_v8::from_v8::<serde_json::Value>(scope, local);
+        println!("r, {}", deserialised_value.unwrap());
+        Ok::<(), deno_core::anyhow::Error>(())
+    };
+
+    runtime.block_on(future).unwrap();
+    // let x = NonNull::<&str>::dangling();
+    // v8::String::from_str()
+    // let global = v8::Global::from_raw(js_runtime.v8_isolate(), "".as_bytes());
+    // js_runtime.resolve_value(global);
+    // js_runtime.poll_value(global, )
+}
